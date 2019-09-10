@@ -4,6 +4,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.StrictMode;
@@ -15,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.android.volley.Request;
@@ -41,12 +43,13 @@ public class MainActivity extends AppCompatActivity {
     String baseUrl = "https://finans.truncgil.com/today.json";// döviz değerlerini çektiğimiz api
     String baseUrl1 ="http://bigpara.hurriyet.com.tr/api/v1/hisse/list";
     String freeforexurl="https://www.freeforexapi.com/api/live?pairs=USDTRY";
-    TextView txt,txt1,txt2;
+    TextView txt,txt1,txt2,txt_status,txt_code;
     EditText edt;
+    Button btn;
     Double yuzde=0.0;
     Double onceki_deger=0.0;
     Double tempData=5.8222;
-    Button btn;
+    Switch swtch;
     RequestQueue requestQueue;
 
     @Override
@@ -59,10 +62,12 @@ public class MainActivity extends AppCompatActivity {
         yuzde=0.1;
         txt=(TextView) findViewById(R.id.txt_deger);
         txt1=(TextView) findViewById(R.id.textView5);
-        txt2=(TextView) findViewById(R.id.textView);
-        edt=(EditText) findViewById(R.id.yuzde);
-        btn=(Button) findViewById(R.id.button);
 
+        txt_status=(TextView) findViewById(R.id.txt_status);
+        edt=(EditText) findViewById(R.id.yuzde);
+        btn=(Button) findViewById(R.id.btn);
+        txt_code=(TextView) findViewById(R.id.textView);
+        swtch=(Switch) findViewById(R.id.switch1);
         txt.setText("123");
         final Handler handler = new Handler();
         Timer timer;
@@ -83,24 +88,17 @@ public class MainActivity extends AppCompatActivity {
         timer = new Timer();
 
         timer.schedule(timerTask,1000,7000);
-        btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                txt.setText("1");
-                
 
-            }
-        });
 
     }
-    public void displayNotification() {
 
+    public void displayNotification() {
         NotificationCompat.Builder notificationBuilder= new NotificationCompat.Builder(this);
         notificationBuilder.setSmallIcon(R.mipmap.ic_launcher);
         notificationBuilder.setContentTitle("Dolar Kuru Bilgilendirme");
         notificationBuilder.setContentText(txt1.getText());
         notificationBuilder.setTicker("Yeni bildiriminiz var !");
-
+        notificationBuilder.setVibrate(new long[]{1000,1000,1000,1000,1000});
         Intent resultIntent = new Intent(this, MainActivity.class);
         TaskStackBuilder TSB = TaskStackBuilder.create(this);
         TSB.addParentStack(MainActivity.class);
@@ -137,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
         startService(BackGround_Service);
     }
     public void freeforexapi(){
-
         StringRequest strReq=new StringRequest(Request.Method.GET, freeforexurl,
                 new Response.Listener<String>() {
                     @Override
@@ -146,7 +143,17 @@ public class MainActivity extends AppCompatActivity {
                             JSONObject jsonObject=new JSONObject(response);
                             JSONObject jsonObject1=jsonObject.getJSONObject("rates").getJSONObject("USDTRY");
                             final String anlik_deger=jsonObject1.getString("rate");
-                            txt.setText(anlik_deger);
+                            int code=Integer.parseInt(jsonObject.getString("code"));
+
+
+                            if(code==200){
+                                btn.setBackgroundResource(R.drawable.circle_shape_2);
+
+                            }else{
+                                btn.setBackgroundResource(R.drawable.circle_shape);
+
+                            }
+                            txt.setText(anlik_deger+" TRY");
                             String edt_deger=edt.getText().toString();
 
                             Boolean b=edt_deger.isEmpty();
@@ -157,10 +164,14 @@ public class MainActivity extends AppCompatActivity {
                                 Double hesaplı_deger_eksi=(onceki_deger)-onceki_deger*yuzde/100;
                                 if(anlik_deger_double<=hesaplı_deger_eksi){
                                     txt1.setText("Dolar degeri belirlenen yüzde de azaldı");
-                                    displayNotification();
+                                    if (swtch.isChecked()){
+                                        displayNotification();
+                                    }
                                 }else if(anlik_deger_double>= hesaplı_deger_arti){
                                     txt1.setText("Dolar degeri belirlenen yüzde de arttı");
-                                    displayNotification();
+                                    if (swtch.isChecked()){
+                                        displayNotification();
+                                    }
                                 }else {
                                     txt1.setText("Dolar degeri degismedi");
                                 }
@@ -176,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
                                     txt1.setText("degerler eşit");
                                 }*/
                                 onceki_deger=anlik_deger_double;
-                                txt2.setText(onceki_deger.toString());
                             }
                             else{
                                 txt2.setText("Bildirim yüzdesi değerini giriniz!");
